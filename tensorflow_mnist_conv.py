@@ -70,12 +70,12 @@ def main(log_dir):
     with sv.managed_session() as sess:
 
         # Main training loop
-        for step in range(10000):
+        for step in range(100):
             batch_xs, batch_ys = mnist.train.next_batch(32)
             _, summary = sess.run([train_step, merged], feed_dict={x: batch_xs, y: batch_ys})
             sv.summary_writer.add_summary(summary, step)
 
-            if step % 100 == 0:
+            if step % 10 == 0:
                 print(sess.run(accuracy, feed_dict={x: mnist.test.images, y: mnist.test.labels}))
 
         save_path = saver.save(sess, os.path.join(log_dir, "final_model.ckpt"), global_step=sv.global_step)
