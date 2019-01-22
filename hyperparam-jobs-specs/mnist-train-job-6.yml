@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist-job-6
+spec:
+  parallelism: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+       - name: tensorflow
+         image: tensorflow/tensorflow
+         workingDir: /tensorflow-mnist-example
+         env:
+         - name: JOB_ID
+           value: "6"
+         command: ["bash"]
+         args: ["-c","python tensorflow_mnist_conv.py"]
+         volumeMounts:
+         - name: tensorflow-mnist-example
+           mountPath: /tensorflow-mnist-example
+      volumes:
+      - name: tensorflow-mnist-example
+        gitRepo:
+          repository: https://github.com/david-haber/tensorflow-mnist-example.git
+          revision: master
+          directory: .

@@ -4,33 +4,43 @@ from __future__ import print_function
 
 import os
 import datetime
+import yaml
 
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 
 
+def get_hyperparameters(job_id):
+    # Update file name with correct path
+    with open("hyperparams.yml", 'r') as stream:
+        hyper_param_set = yaml.load(stream)
+    print("\nHypermeter set for job_id: ", job_id)
+    print("------------------------------------")
+    print(hyper_param_set[job_id - 1]["hyperparam_set"])
+    print("------------------------------------\n")
+
+    return hyper_param_set[job_id - 1]["hyperparam_set"]
+
+
 def mnist_net(batch_input):
     # Conv layer
-    with tf.variable_scope("conv"):
-        filters = tf.get_variable("filters", initializer=tf.truncated_normal(shape=[3, 3, 1, 16], stddev=0.1))
-        conv = tf.nn.conv2d(batch_input, filters, strides=[1, 1, 1, 1], padding="VALID")
-        act = tf.nn.relu(conv)
-        max_pool = tf.nn.max_pool(act, ksize=[1, 2, 2, 1],
-                                  strides=[1, 2, 2, 1], padding='SAME')
+    x = tf.layers.conv2d(batch_input, 16, (3, 3))
+    x = tf.nn.relu(x)
+    x = tf.layers.max_pooling2d(x, (2, 2), (2, 2), padding="same")
 
     # FC layer
-    with tf.variable_scope("fc"):
-        W_fc = tf.get_variable("W", initializer=tf.truncated_normal([13 * 13 * 16, 10], stddev=0.1))
-        b_fc = tf.get_variable("b", initializer=tf.constant(0.0, shape=[10]))
+    x = tf.reshape(x, [-1, 13 * 13 * 16])
+    x = tf.layers.dense(x, 10)
 
-        pool_flat = tf.reshape(max_pool, [-1, 13 * 13 * 16])
-        out_fc = tf.nn.softmax(tf.matmul(pool_flat, W_fc) + b_fc)
-
-    return out_fc
+    return x
 
 
 def main(log_dir):
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+
+    # Load hyperparameters
+    job_id = int(os.environ['JOB_ID'])
+    hyperparams = get_hyperparameters(job_id)
 
     # Define input/output placeholders
     x = tf.placeholder(tf.float32, [None, 784])
@@ -46,7 +56,7 @@ def main(log_dir):
         # Define loss function
     with tf.name_scope("loss"):
         cross_entropy = tf.reduce_mean(
-            tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=out))
+            tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=out))
 
     # Another metric
     with tf.name_scope("accuracy"):
@@ -55,7 +65,7 @@ def main(log_dir):
 
     # Define optimizer
     with tf.name_scope("optimizer"):
-        train_step = tf.train.AdamOptimizer().minimize(cross_entropy)
+        train_step = tf.train.AdamOptimizer(learning_rate=hyperparams["learning_rate"]).minimize(cross_entropy)
 
     # Define summaries
     tf.summary.scalar('cross_entropy', cross_entropy)
@@ -70,7 +80,7 @@ def main(log_dir):
     with sv.managed_session() as sess:
 
         # Main training loop
-        for step in range(100):
+        for step in range(500):
             batch_xs, batch_ys = mnist.train.next_batch(32)
             _, summary = sess.run([train_step, merged], feed_dict={x: batch_xs, y: batch_ys})
             sv.summary_writer.add_summary(summary, step)

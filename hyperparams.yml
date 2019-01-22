@@ -1,0 +1,14 @@
+- hyperparam_set:
+    learning_rate: 1.0e-05
+- hyperparam_set:
+    learning_rate: 0.001
+- hyperparam_set:
+    learning_rate: 0.002
+- hyperparam_set:
+    learning_rate: 0.004
+- hyperparam_set:
+    learning_rate: 0.001
+- hyperparam_set:
+    learning_rate: 0.05
+- hyperparam_set:
+    learning_rate: 0.1
